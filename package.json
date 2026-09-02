@@ -12,7 +12,10 @@
     "simulate:workflow-a": "tsx simulation/simulate-workflow-a.ts",
     "simulate:workflow-b": "tsx simulation/simulate-workflow-b.ts",
     "simulate:inbound-approval": "tsx simulation/simulate-inbound-approval.ts",
-    "simulate:zero-cost": "tsx simulation/simulate-zero-cost-router.ts"
+    "simulate:zero-cost": "tsx simulation/simulate-zero-cost-router.ts",
+    "cli": "tsx src/cli/index.ts",
+    "autopilot": "tsx src/cli/index.ts autopilot up",
+    "doctor": "tsx src/cli/index.ts autopilot doctor"
   },
   "keywords": [
     "devops",
@@ -27,10 +30,13 @@
   "author": "NXC Systems",
   "license": "Apache-2.0",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "@octokit/auth-app": "^6.1.1",
     "@octokit/rest": "^20.1.1",
     "@octokit/webhooks": "^13.4.0",
     "@sentry/node": "^8.26.0",
+    "better-sqlite3": "^11.8.1",
+    "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "nodemailer": "^6.9.14",
@@ -38,9 +44,12 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.14.12",
+    "@types/node": "^20.19.43",
     "@types/nodemailer": "^6.4.15",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
+  },
+  "bin": {
+    "nico": "./dist/cli/index.js"
   }
 }
