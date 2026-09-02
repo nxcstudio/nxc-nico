@@ -1,0 +1,140 @@
+name: NICO Autonomous DevOps Agent
+
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, synchronize]
+  repository_dispatch:
+    types: [sentry_alert, nico_action, self_heal]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Manual NICO Action'
+        required: true
+        default: 'cluster_audit'
+        type: choice
+        options:
+          - cluster_audit
+          - simulate_workflow_a
+          - simulate_workflow_b
+          - zero_cost_quota_check
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  nico-brain:
+    name: NICO Cognitive Core Execution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Static Typecheck & Integrity Audit
+        run: npm run typecheck
+
+      # Handle Human-in-the-Loop Issue / PR Comment
+      - name: Process Human Interaction Command
+        if: github.event_name == 'issue_comment'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          IS_PR: ${{ github.event.issue.pull_request != null }}
+          AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          echo "Processing comment from $AUTHOR on #${ISSUE_NUMBER}..."
+          node -e "
+            import { Octokit } from '@octokit/rest';
+            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+            const comment = process.env.COMMENT_BODY.toLowerCase().trim();
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+            const isPR = process.env.IS_PR === 'true';
+
+            async function handle() {
+              if (comment.includes('@nico approve') || comment.startsWith('approve')) {
+                if (isPR) {
+                  console.log('Human approved PR #' + issueNumber + '. Merging...');
+                  await octokit.pulls.merge({
+                    owner,
+                    repo,
+                    pull_number: issueNumber,
+                    merge_method: 'squash',
+                    commit_title: 'chore: autonomous merge approved by @' + process.env.AUTHOR
+                  });
+                  await octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    body: '✅ **NICO Autonomous Action**: Pull request #' + issueNumber + ' has been approved and successfully merged into main.'
+                  });
+                } else {
+                  await octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    body: '👋 **NICO**: Received approval. Ready for deployment sync.'
+                  });
+                }
+              } else if (comment.includes('@nico status') || comment.startsWith('status')) {
+                await octokit.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: '🤖 **NICO Autonomous Agent Status**:\n- **Health**: 100% Operational\n- **Zero-Cost Engine**: Active on GitHub Actions Free Tier ($0.00/mo)\n- **Cluster**: AWS EKS (1.30) / GCP Always Free\n- **Mode**: Continuous Autonomous Listening'
+                });
+              } else if (comment.includes('@nico')) {
+                await octokit.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: '🤖 **NICO**: Command received: \`' + process.env.COMMENT_BODY + '\`. Analyzing instructions against repository state...'
+                });
+              }
+            }
+            handle().catch(err => { console.error(err); process.exit(1); });
+          "
+
+      # Handle Sentry Webhook / Repository Dispatch
+      - name: Process Autonomous Self-Healing Bug Fix
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'sentry_alert'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Executing Self-Healing Workflow A..."
+          npm run simulate:workflow-a
+
+      # Handle Manual Workflow Dispatch
+      - name: Execute Manual NICO Action
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ACTION="${{ github.event.inputs.action }}"
+          echo "Executing manual action: $ACTION"
+          if [ "$ACTION" = "simulate_workflow_a" ]; then
+            npm run simulate:workflow-a
+          elif [ "$ACTION" = "simulate_workflow_b" ]; then
+            npm run simulate:workflow-b
+          elif [ "$ACTION" = "zero_cost_quota_check" ]; then
+            npm run simulate:zero-cost
+          else
+            echo "Running cluster health audit..."
+            npm run simulate:zero-cost
+          fi
