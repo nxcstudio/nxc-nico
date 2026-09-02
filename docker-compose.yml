@@ -1,0 +1,43 @@
+services:
+  # NXC-NICO Cognitive & Orchestration Daemon
+  nxc-nico:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nxc-nico-core
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DOCKER_HOST=tcp://dind:2375
+      - LLM_PROVIDER=mock
+      - MAIL_PROVIDER=console
+      - LOG_LEVEL=debug
+    volumes:
+      - sandbox_data:/app/sandboxes
+    depends_on:
+      dind:
+        condition: service_healthy
+
+  # Docker-in-Docker (DinD) Sandbox Runtime
+  # Provides isolated daemon for spinning up ephemeral test containers
+  dind:
+    image: docker:24-dind
+    container_name: nxc-nico-dind
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - dind_storage:/var/lib/docker
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  sandbox_data:
+  dind_storage:

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  PORT: "3000"
+  HOST: "0.0.0.0"
+  LOG_LEVEL: "info"
+  LLM_PROVIDER: "mock"
+  LLM_MODEL: "gemini-1.5-pro"
+  MAIL_PROVIDER: "console"
+  MAIL_FROM: "nico@nxc.internal"
+  MAIL_TO_DEFAULT: "devops-alerts@nxc.internal"
+  ARGOCD_SERVER: "argocd.internal.nxc.systems"
+  POSTHOG_HOST: "https://app.posthog.com"

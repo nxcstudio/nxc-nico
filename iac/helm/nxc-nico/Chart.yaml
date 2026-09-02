@@ -1,0 +1,9 @@
+apiVersion: v2
+name: nxc-nico
+description: Helm chart for NXC-NICO Autonomous DevOps Engineer & Cluster Orchestrator
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: NXC Systems
+    email: devops@nxc.internal
